@@ -20,7 +20,7 @@ Nemesis-CI is an agentic DevOps tool that intercepts broken CI/CD pipelines, dia
 ## Quickstart
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/nemesis-ci.git
+git clone https://github.com/syedjani775-commits/nemesis-ci.git
 cd nemesis-ci
 
 # Install dependencies
