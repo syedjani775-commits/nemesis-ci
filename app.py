@@ -1,22 +1,20 @@
 import os
 import subprocess
 import re
+import difflib
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
 from tavily import TavilyClient
 
-# Page configuration
 st.set_page_config(
-    page_title="Nemesis-CI Dashboard",
+    page_title="Nemesis-CI: Autonomous CI/CD Remediation",
     page_icon="⚡",
     layout="wide"
 )
 
-# Load environment keys
 load_dotenv()
 
-# Clients
 nebius_client = OpenAI(
     base_url="https://api.tokenfactory.nebius.com/v1/",
     api_key=os.getenv("NEBIUS_API_KEY"),
@@ -24,19 +22,21 @@ nebius_client = OpenAI(
 tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
 st.title("⚡ Nemesis-CI: Autonomous CI/CD Failure Remediation Agent")
-st.caption("Powered by **NVIDIA Nemotron-3.5-Lightning** on **Nebius Token Factory** & **Tavily Search API**")
+st.caption("Grand Prize Contender • Powered by **NVIDIA Nemotron-3.5-Lightning** on **Nebius Token Factory** & **Tavily Search API**")
 
-st.divider()
+st.markdown("---")
 
-col1, col2 = st.columns(2)
+col_left, col_right = st.columns([1, 1], gap="medium")
 
 def run_tests():
     res = subprocess.run(["python", "test_sample.py"], capture_output=True, text=True)
     return res.returncode, res.stderr or res.stdout
 
-with col1:
-    st.subheader("1. CI/CD Pipeline Monitor")
-    if st.button("Run CI Pipeline Tests", use_container_width=True):
+with col_left:
+    st.header("1. CI/CD Pipeline Monitor")
+    st.markdown("Monitors live test runner executions and traps stack traces.")
+    
+    if st.button("▶ Run CI Pipeline Tests", use_container_width=True, type="secondary"):
         code, output = run_tests()
         if code != 0:
             st.error("🚨 Build Status: FAILED (Tests Broken)")
@@ -47,25 +47,27 @@ with col1:
             st.code(output, language="bash")
             st.session_state["error_log"] = None
 
-with col2:
-    st.subheader("2. Autonomous Remediation Engine")
+with col_right:
+    st.header("2. Autonomous Remediation Engine")
+    st.markdown("Dynamic self-healing loop: Tavily Docs $\\rightarrow$ NVIDIA Nemotron $\\rightarrow$ Auto-patch.")
+    
     if st.session_state.get("error_log"):
-        st.warning("Action Required: Build failure detected. Autonomous agent standing by.")
+        st.warning("Action Required: Build failure detected. Autonomous agent ready.")
         
         if st.button("🚀 Trigger Nemesis-CI Self-Healing", type="primary", use_container_width=True):
             error_log = st.session_state["error_log"]
             error_line = error_log.strip().splitlines()[-1]
             
             with st.status("Executing Agentic Self-Healing Loop...", expanded=True) as status:
-                st.write("🔍 **Tavily Search**: Retrieving live documentation and fix signatures...")
+                st.write("🔍 **Tavily Search API**: Querying live documentation for syntax fix...")
                 search_results = tavily_client.search(
                     query=f"Python fix PyJWT {error_line}",
                     max_results=2
                 )
                 web_context = "\n".join([r["content"] for r in search_results["results"]])
-                st.write("✅ Context retrieved from Tavily.")
+                st.write("✅ Live context retrieved from Tavily.")
 
-                st.write("🧠 **NVIDIA Nemotron-3.5**: Synthesizing patch via Nebius Token Factory...")
+                st.write("🧠 **NVIDIA Nemotron-3.5**: Formulating patch on Nebius Token Factory...")
                 with open("sample_app.py", "r") as f:
                     broken_code = f.read()
 
@@ -95,20 +97,27 @@ Include all necessary imports and the fixed verify_token function with algorithm
                 code_blocks = re.findall(r"```python(.*?)```", raw_patch, flags=re.DOTALL)
                 clean_patch = code_blocks[-1].strip() if code_blocks else raw_patch
 
-                st.write("💾 **Agent Dispatch**: Overwriting broken source file with validated patch...")
+                st.write("💾 **Autonomous Dispatch**: Writing validated patch to source on disk...")
                 with open("sample_app.py", "w") as f:
                     f.write(clean_patch)
 
-                st.write("🔄 **Re-executing CI Pipeline** to verify patch...")
+                st.write("🔄 **Re-running Verification Suite**...")
                 retest_code, retest_out = run_tests()
 
                 if retest_code == 0:
-                    status.update(label="Build Restored Successfully!", state="complete", expanded=False)
-                    st.success("🎉 PIPELINE RESTORED! Autonomous Patch Applied & Tests Passed.")
-                    st.subheader("Generated Patch:")
-                    st.code(clean_patch, language="python")
+                    status.update(label="Remediation Verified & Pipeline Restored!", state="complete", expanded=False)
+                    st.success("🎉 PIPELINE RESTORED! Tests passed cleanly.")
+                    
+                    st.subheader("Autonomous Patch Verification (Code Diff)")
+                    diff = difflib.unified_diff(
+                        broken_code.splitlines(keepends=True),
+                        clean_patch.splitlines(keepends=True),
+                        fromfile="sample_app.py (Broken)",
+                        tofile="sample_app.py (Patched)"
+                    )
+                    st.code("".join(diff), language="diff")
                 else:
                     status.update(label="Remediation Failed", state="error")
-                    st.error("Patch applied but tests still failing.")
+                    st.error("Patch applied, but tests did not pass.")
     else:
-        st.info("Pipeline is clean or has not been triggered yet.")
+        st.info("Pipeline is healthy. No remediation required.")
